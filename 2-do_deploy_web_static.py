@@ -1,31 +1,70 @@
 #!/usr/bin/python3
-"""
-Compress web static package
-"""
-from os import path
-from datetime import datetime
+"""Comment"""
 from fabric.api import *
+import os
+import re
+from datetime import datetime
+
+env.user = 'ubuntu'
+env.hosts = ['52.55.249.213', '54.157.32.137']
 
 
-env.hosts = ['52.55.249.213','54.157.32.137']
-env.user = "ubuntu"
-env.key_filename = '~/.ssh/id_rsa'
+def do_pack():
+    """Comm"""
+    local("mkdir -p versions")
+    result = local("tar -cvzf versions/web_static_{}.tgz web_static"
+                   .format(datetime.strftime(datetime.now(), "%Y%m%d%H%M%S")),
+                   capture=True)
+    if result.failed:
+        return None
+    return result
 
-def do_deploy(archive):
-	if os.path.exists(archive) is False:
-		return False
-	try:
-		put(archive, "/tmp/")
-		file = archive.split("/"[-1]
-		file_name = file.split(".")[0]
-		folder = "/data/web_static/releases/{}/".format(file_name)
-		run("mkdir -p {}".format(folder))
-		run("tar -xzf /tmp/{} -C {}".format(file, folder))
-		run("rm -r /tmp/{}".format(file))
-		run("mv {}web_static/* {}".format(folder, folder))
-		run("rm -rf {}web_static".format(folder))
-		run("rm -rf /data/web_static/current")
-		run("ln -s {} /data/web_static/current".format(folder))
-		return True
-	except Exception:
-		return False
+
+def do_deploy(archive_path):
+    if not os.path.isfile(archive_path):
+        return False
+
+    filename_regex = re.compile(r'[^/]+(?=\.tgz$)')
+    match = filename_regex.search(archive_path)
+
+    # Upload the archive to the /tmp/ directory of the web server
+    archive = match.group(0)
+    result = put(archive_path, "/tmp/{}.tgz".format(archive))
+    if result.failed:
+        return False
+
+    result = run(
+        "mkdir -p /data/web_static/releases/{}/".format(archive))
+    if result.failed:
+        return False
+    result = run("tar -xzf /tmp/{}.tgz -C /data/web_static/releases/{}/"
+                 .format(archive, archive))
+    if result.failed:
+        return False
+
+    # Delete the archive from the web server
+    result = run("rm /tmp/{}.tgz".format(archive))
+    if result.failed:
+        return False
+    result = run("mv /data/web_static/releases/{}"
+                 "/web_static/* /data/web_static/releases/{}/"
+                 .format(archive, archive))
+    if result.failed:
+        return False
+    result = run("rm -rf /data/web_static/releases/{}/web_static"
+                 .format(archive))
+    if result.failed:
+        return False
+
+    # Delete the symbolic link /data/web_static/current from the web server
+    result = run("rm -rf /data/web_static/current")
+    if result.failed:
+        return False
+
+    #  Create a new the symbolic link
+    result = run("ln -s /data/web_static/releases/{}/ /data/web_static/current"
+                 .format(archive))
+    if result.failed:
+        return False
+
+    return True
