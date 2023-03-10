@@ -1,17 +1,19 @@
 #!/usr/bin/python3
-"""
-Compress web static package
-"""
+"""Comment"""
 from fabric.api import local
 from datetime import datetime
 
-def do_pack():
-	# Get
-	try: 
-		local("mkdir -p versions")
-		archive = "versions/web_static_{}.tgz".format(strftime("%Y%M%d%H%M%S"))
-		local("tar -cvzf {} web_static/".format(archive))
 
-		return archive
-	except Exception:
-		return None
+def do_pack():
+    """Comment """
+    local("mkdir -p versions")
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    archive_path = "versions/web_static_{}.tgz".format(timestamp)
+
+    result = local("tar -cvzf {} web_static".format(archive_path))
+
+    if result.failed:
+        return None
+    else:
+        return archive_path
