@@ -10,7 +10,7 @@ env.hosts = ['52.55.249.213', '54.157.32.137']
 
 
 def do_pack():
-    """Comm"""
+    """Comment"""
     local("mkdir -p versions")
     result = local("tar -cvzf versions/web_static_{}.tgz web_static"
                    .format(datetime.strftime(datetime.now(), "%Y%m%d%H%M%S")),
@@ -62,6 +62,7 @@ def do_deploy(archive_path):
         return False
 
     #  Create a new the symbolic link
+    # /data/web_static/current on the web server
     result = run("ln -s /data/web_static/releases/{}/ /data/web_static/current"
                  .format(archive))
     if result.failed:
